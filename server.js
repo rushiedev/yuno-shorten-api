@@ -26,14 +26,21 @@ process.env.TZ = 'Asia/Ho_Chi_Minh';
 // Use Express
 const app = express();
 
+// Header
+const header = { "Content-type": "application/json" };
+
 // =))
 const limit = rateLimit({
-    windowMs: 10 * 60 * 10000,
+    windowMs: 60 * 1000,
     max: 10,
-    message: JSON.stringify({
-        "status": 0,
-        "msg": "Too many requests, please try again later!"
-    })
+    handler: function (req, res) {
+        res.status(429)
+            .header(header)
+            .send(JSON.stringify({
+                "status": 0,
+                "msg": "Too many requests, please try again later!"
+            }))
+    }
 })
 
 // Use BodyParser
@@ -41,12 +48,6 @@ app.use(bodyParser.json());
 
 // Use CORS
 app.use(cors());
-
-// Use RateLimit
-app.use(limit);
-
-// Header
-const header = { "Content-type": "application/json" };
 
 // Use MongoDB
 const client = new MongoClient(process.env.MONGODB_URL, {
@@ -98,7 +99,7 @@ app.get('/:uri', async (req, res) => {
 })
 
 // Create shorten link
-app.post('/create', async (req, res) => {
+app.post('/create', limit, async (req, res) => {
     // Get body params
     const { url } = req.body;
 
